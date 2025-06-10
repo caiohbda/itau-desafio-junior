@@ -22,7 +22,7 @@ public class TransacaoController {
     @Autowired
     private TransacaoRepository transacaoRepository;
 
-    @PostMapping("/transacoes")
+    @PostMapping("/transacao")
     public ResponseEntity<Void> createTransacao(@Valid @RequestBody TransacaoRequestDTO dto) {
         transacaoService.create(dto);
         return ResponseEntity.status(HttpStatus.CREATED).build();
