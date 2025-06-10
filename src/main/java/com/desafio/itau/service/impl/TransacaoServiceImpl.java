@@ -32,4 +32,9 @@ public class TransacaoServiceImpl implements TransacaoService {
         Transacao savedTransacao = transacaoRepository.save(transacao);
         return TransacaoMapper.toResponse(savedTransacao);
     }
+
+    @Override
+    public void delete() {
+        transacaoRepository.deleteAll();
+    }
 }
