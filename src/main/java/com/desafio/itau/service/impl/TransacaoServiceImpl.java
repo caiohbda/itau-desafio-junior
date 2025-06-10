@@ -7,6 +7,7 @@ import com.desafio.itau.mapper.TransacaoMapper;
 import com.desafio.itau.repository.TransacaoRepository;
 import com.desafio.itau.service.TransacaoService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -20,6 +21,9 @@ public class TransacaoServiceImpl implements TransacaoService {
 
     @Autowired
     private TransacaoRepository transacaoRepository;
+
+    @Value("${api.estatisticas.janela-de-tempo-segundos:60}")
+    private int janelaDeTempo;
 
     @Override
     public void create(TransacaoRequestDTO transacaoRequestDTO) {
@@ -41,60 +45,53 @@ public class TransacaoServiceImpl implements TransacaoService {
     }
 
     @Override
-    public EstatisticasDTO getEstatisticas() {
-        long countResult = count();
-        BigDecimal sumResult = sum();
-        BigDecimal avgResult = avg();
-        BigDecimal minResult = min();
-        BigDecimal maxResult = max();
+    public EstatisticasDTO getEstatisticas(int segundos) {
+        List<Transacao> transacoesRecentes = getTransacoesRecentes(segundos);
+        long countResult = count(transacoesRecentes);
+        BigDecimal sumResult = sum(transacoesRecentes);
+        BigDecimal avgResult = avg(transacoesRecentes);
+        BigDecimal minResult = min(transacoesRecentes);
+        BigDecimal maxResult = max(transacoesRecentes);
 
         return new EstatisticasDTO(countResult, sumResult, avgResult, minResult, maxResult);
     }
 
-    private List<Transacao> getTransacoesRecentes() {
-        OffsetDateTime limiteDeTempo = OffsetDateTime.now().minusSeconds(60);
+    private List<Transacao> getTransacoesRecentes(int segundos) {
+        OffsetDateTime limiteDeTempo = OffsetDateTime.now().minusSeconds(segundos);
 
         return transacaoRepository.findAll().stream()
                 .filter(transacao -> transacao.getDataHora().isAfter(limiteDeTempo))
                 .toList();
     }
 
-    private long count() {
-        return getTransacoesRecentes().size();
+    private long count(List<Transacao> transacoes) {
+        return transacoes.size();
     }
 
-    private BigDecimal sum() {
-        List<Transacao> transacoesRecentes = getTransacoesRecentes();
-        return transacoesRecentes.stream()
+    private BigDecimal sum(List<Transacao> transacoes) {
+        return transacoes.stream()
                 .map(Transacao::getValor)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    private BigDecimal avg() {
-        List<Transacao> transacoesRecentes = getTransacoesRecentes();
-        if (transacoesRecentes.isEmpty()) {
+    private BigDecimal avg(List<Transacao> transacoes) {
+        if (transacoes.isEmpty()) {
             return BigDecimal.ZERO;
         }
-
-        BigDecimal sum = sum();
-        BigDecimal count = new BigDecimal(transacoesRecentes.size());
-
-        return sum.divide(count, 2, RoundingMode.HALF_UP);
+        BigDecimal currentSum = sum(transacoes);
+        BigDecimal currentCount = new BigDecimal(transacoes.size());
+        return currentSum.divide(currentCount, 2, RoundingMode.HALF_UP);
     }
 
-    private BigDecimal min() {
-        List<Transacao> transacoesRecentes = getTransacoesRecentes();
-
-        return transacoesRecentes.stream()
+    private BigDecimal min(List<Transacao> transacoes) {
+        return transacoes.stream()
                 .map(Transacao::getValor)
                 .min(Comparator.naturalOrder())
                 .orElse(BigDecimal.ZERO);
     }
 
-    private BigDecimal max() {
-        List<Transacao> transacoesRecentes = getTransacoesRecentes();
-
-        return transacoesRecentes.stream()
+    private BigDecimal max(List<Transacao> transacoes) {
+        return transacoes.stream()
                 .map(Transacao::getValor)
                 .max(Comparator.naturalOrder())
                 .orElse(BigDecimal.ZERO);

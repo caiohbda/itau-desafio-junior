@@ -6,5 +6,5 @@ import com.desafio.itau.dto.TransacaoRequestDTO;
 public interface TransacaoService {
     void create(TransacaoRequestDTO transacaoRequestDTO);
     void delete();
-    EstatisticasDTO getEstatisticas();
+    EstatisticasDTO getEstatisticas(int segundos);
 }
